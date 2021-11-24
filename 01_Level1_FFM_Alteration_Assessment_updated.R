@@ -1,5 +1,5 @@
 #01_Flow Ecology Level 1 - Alteration Assessment based on current deviation from reference
-  #This code evaluates alteration of functional flow metrics (FFM) based on comparison of current FFM to reference ranges
+  #This code evaluates alteration of functional flow metrics (FFM) based on comparison of current FFM to reference ranges (modeled)
     #and summarizes component alteration
 
 #install libraries - only need to do this once
@@ -43,7 +43,7 @@ ffm.list <- unique(ffm.labels$flow_metric)
 ###Alteration Assessment:
 
 ##Alteration ruleset:
-###Only run alteration assessment if >10 metric values calculated across period of record for current and reference, if <10 values then "Not enough data"
+###Only run alteration assessment if at min 5 metric values calculated across period of record for current and reference, if <5 values then "Not enough data"
 ###Likely unaltered: if current median falls within p10-p90 reference range and > 50% of current values fall within reference range
 ###Likely altered: if current median falls outside of p10-p90 reference range 
 ###Indeterminate: if current median falls within p10-p90 reference range and < 50% of current values fall within reference range
