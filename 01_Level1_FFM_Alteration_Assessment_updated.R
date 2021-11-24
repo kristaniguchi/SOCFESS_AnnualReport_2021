@@ -62,10 +62,6 @@ for (i in 1:length(sites)){
   #subset percentiles to site i
   FFM.percentiles.sub <- FFM.percentiles[FFM.percentiles$site == sites[i],]
   
-  #empty vectors to be filled in with alteration data
-  alteration.status <- NA
-  alteration.direction <- NA
-  
   #loop through each FFM for evaluation
   for(j in 1:length(ffm.list)){
     #subset annual to FFM j
@@ -74,9 +70,9 @@ for (i in 1:length(sites)){
     #subset percentiles to site i
     FFM.percentiles.sub.ffm <- FFM.percentiles.sub[FFM.percentiles.sub$flow_metric == ffm.list[j],]
     
-    #if current or ref has < 10 metric values, then skip alteration assessment and add to alteration notes
-    if(FFM.percentiles.sub.ffm$metric_count[FFM.percentiles.sub.ffm$dataset == "current"] < 10 |
-       FFM.percentiles.sub.ffm$metric_count[FFM.percentiles.sub.ffm$dataset == "reference"] < 10) {
+    #if ref has < 5 metric values, then skip alteration assessment and add to alteration notes
+    if(FFM.percentiles.sub.ffm$metric_count[FFM.percentiles.sub.ffm$dataset == "current"] < 5 |
+       FFM.percentiles.sub.ffm$metric_count[FFM.percentiles.sub.ffm$dataset == "reference"] < 5) {
       #create a new row with alteration category "not enough data" and save into overall df
       out.row <- c("", sites[i], "", ffm.list[j], "Not enough values", "", "", unique(FFM.percentiles.sub.ffm$region), unique(FFM.percentiles.sub.ffm$scenario), "current", "Less than 10 metric values, cannot do assessment")
       #save in output df
@@ -93,38 +89,38 @@ for (i in 1:length(sites)){
       
       #if NA values for current or reference ffms, then all are NA
       if(is.na(model.curr.i.med) |  is.na(model.ref.i.90)){
-        alteration.status[j] <- NA
-        alteration.direction[j] <- NA
+        alteration.status <- NA
+        alteration.direction <- NA
       }else{
         #else, if median falls outside of 10-90, likely altered
         if(model.curr.i.med > model.ref.i.90 | model.curr.i.med < model.ref.i.10){
-          alteration.status[j] <- "likely_altered"
+          alteration.status <- "likely_altered"
           #if it is altered determine direction of alteration high or low
           if(model.curr.i.med > model.ref.i.90){
             #direction is high when current median is larger than the ref 90th percentile
-            alteration.direction[j] <- "high"
+            alteration.direction <- "high"
           }else{
             #else, direction will be low
-            alteration.direction[j] <- "low"
+            alteration.direction <- "low"
           }
         }else{
           #if median falls within 10-90th and >50% falls within the range, then indeterminate or <50% falls within range (likely unaltered)
           #since not altered, no alteration direction
-          alteration.direction[j] <- "none_found"
+          alteration.direction <- "none_found"
           #determine how many values fall in the reference 10-90th range
           count.in.range <- length(which(model.curr.ffms.i <= model.ref.i.90 & model.curr.ffms.i >= model.ref.i.10))
           percent.inrange <- count.in.range/length(na.omit(model.curr.ffms.i))
           #if more than half in the range, likely unaltered
           if(percent.inrange > 0.5){
-            alteration.status[j] <- "likely_unaltered"
+            alteration.status <- "likely_unaltered"
             #else, if < half is in the range, indeterminate  
           }else{
-            alteration.status[j] <- "indeterminate"
+            alteration.status <- "indeterminate"
           }
         }
       }
       #create a new row with alteration category " and save into overall df
-      out.row2 <- c("", sites[i], "", ffm.list[j], alteration.status[j], alteration.direction[j], "", unique(FFM.percentiles.sub.ffm$region), unique(FFM.percentiles.sub.ffm$scenario), "current", "")
+      out.row2 <- c("", sites[i], "", ffm.list[j], alteration.status, alteration.direction, "", unique(FFM.percentiles.sub.ffm$region), unique(FFM.percentiles.sub.ffm$scenario), "current", "")
       #save in output df
       alteration.df.overall <- rbind(alteration.df.overall, out.row2)
     }
