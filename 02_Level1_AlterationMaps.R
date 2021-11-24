@@ -1,6 +1,6 @@
 #02_ SOC FESS Level 1: Alteration maps for all subbasins modeled in LSCP 
   #This code loops takes the alteration assessment summary table and generates alteration maps for each FFM, synthesis alteration across flow components
-#Source code for Figures 7, 10, and 11 in main text of final report SOC FESS
+#Source code for Figures 8, 13, and 14 in main text of final report SOC FESS
 
 #################################################
 
@@ -242,6 +242,8 @@ for(k in 1:length(uniq.comp)){
   #print
   #print(alt.plot)
   
+
+  
   #write plot
   #save as jpg
   plot.fname <- paste0(dir.alt, "facet_", unique(basins4.sub$flow_component), "_alteration.map.jpg")
@@ -250,7 +252,7 @@ for(k in 1:length(uniq.comp)){
 }
 
 #################################################
-#Figure 10 in main text
+#Figure 13 in main text
 #Heatmap of alteration: component vs. flow characteristics
 
 #install packages
@@ -305,7 +307,7 @@ mine.heatmap <- ggplot(data = ffm_summary, mapping = aes(x = flow_characteristic
 
 mine.heatmap
 
-ggsave(mine.heatmap, file="./figures/Figure12_heatmap_alteration.jpg", dpi=300, height=8, width=11)
+ggsave(mine.heatmap, file="./figures/heatmap_alteration.jpg", dpi=300, height=8, width=11)
 
 #updated heatmap without frequency used for illustrative purposes in final report
 #find Frequency 
@@ -328,10 +330,10 @@ mine.heatmap2 <- ggplot(data = ffm_summary2, mapping = aes(x = flow_characterist
 mine.heatmap2
 
 #save heatmap
-ggsave(mine.heatmap2, file="./figures/heatmap_alteration.nofreq.jpg", dpi=400, height=8, width=10)
+ggsave(mine.heatmap2, file="./figures/Figure13_heatmap_alteration.nofreq.jpg", dpi=400, height=8, width=10)
 
 #####################################################
-#Figure 12 in main text
+#Figure 14 in main text
 #Synthesis map for alteration across wet season (including baseflow and peak) and dry season
 
 #subset component alteration data to wet, dry, peak
@@ -368,19 +370,26 @@ comp_alt_synth$flow_component <- gsub(" baseflow", "", comp_alt_synth$flow_compo
 comp_alt_synth$flow_component <- gsub("flow", "Flow", comp_alt_synth$flow_component)
 #find unique combos that need to be updated
 unique(comp_alt_synth$flow_component)
-comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Wet-season, Peak Flow, Dry-season"] <- "All"
-comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Wet-season, Dry-season, Peak Flow"] <- "All"
-#comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Wet-season"] <- "Wet-season, Dry-season"
-comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Peak Flow, Dry-season"] <- "Dry-season, Peak Flow"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Peak Flow, Wet-season"] <- "All"
+#comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Wet-season, Peak Flow, Dry-season"] <- "All"
+#comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Wet-season, Dry-season, Peak Flow"] <- "All"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Wet-season"] <- "Wet-season, Dry-season"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Peak Flow"] <- "Peak Flow, Dry-season"
 
 #check to see unique categories for synthesis alteration
 unique(comp_alt_synth$flow_component)
 #save as factor for legend order
-comp_alt_synth$altered_components <- factor(comp_alt_synth$flow_component, levels = c("All", "Wet-season, Dry-season", "Wet-season, Peak Flow", "Dry-season", "Wet-season", "Peak Flow", "None"))
+comp_alt_synth$altered_components <- factor(comp_alt_synth$flow_component, levels = c("All", "Wet-season, Dry-season", "Peak Flow, Wet-season", "Peak Flow, Dry-season","Dry-season", "Wet-season", "Peak Flow"))
 
 #save colors and levels for legend/map
-colors <- c("#a50f15", "#d95f0e", "#fdae61", "#fff7bc", "#fee090", "pink", "#4575b4")
-levels <- c("All", "Wet-season, Dry-season", "Wet-season, Peak Flow", "Dry-season", "Wet-season", "Peak Flow", "None")
+colors <- c("#a50f15", "#d95f0e", "#fdae61", "pink", "#fee090", "#fff7bc", "#4575b4")
+levels <- c("All", "Wet-season, Dry-season", "Peak Flow, Wet-season", "Peak Flow, Dry-season","Dry-season", "Wet-season", "Peak Flow")
+legend <- data.frame(cbind(colors, levels))
+
+#subset to categories
+legend.sub <- legend[legend$levels %in% comp_alt_synth$altered_components,]
+#save as factor
+legend.sub$levels <- factor(legend.sub$levels, levels = unique(legend.sub$levels))
 
 #base map 
 study2 <- ggplot(basins) + 
@@ -407,7 +416,7 @@ syn.plot <- study2 + geom_sf(data = comp_alt_synth, color= "gray89", aes(fill=al
 print(syn.plot)
 
 #save image
-plot.fname <- paste0("./figures/Figure13_Synthesis_Alteration_Map_wetdrypeak.jpg")
+plot.fname <- paste0("./figures/Figure14_Synthesis_Alteration_Map_wetdrypeak.jpg")
 ggsave(syn.plot, file=plot.fname, dpi=400, height=6, width=8)
 
 
