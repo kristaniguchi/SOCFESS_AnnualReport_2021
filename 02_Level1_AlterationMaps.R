@@ -58,8 +58,8 @@ basins2 <- basins %>%
   inner_join(comp_alt, by = c('New_Name'))
 basins2
 
-#reach polylines shapefile can be downloaded here: https://ocgov.box.com/s/rni13od1uai7r351xrt1qbp13wg0sd5o (Reach_Shapefile.zip), unzip and save on local computer, update directory below
-reaches <- st_read('L:/San Juan WQIP_KTQ/Data/SpatialData/Model_Subbasins_Reaches/New_Subbasins_forSCCWRP_12062019/New_Subbasins_forSCCWRP/reaches_forSCCWRP.shp', quiet = T)
+#reach polylines shapefile are saved in github repository in data folder
+reaches <- st_read('./data/reaches_forSCCWRP.shp', quiet = T)
 
 #join component alteration data frame with subbasin shapefile information
 comp_alt <- comp_alt %>% 
