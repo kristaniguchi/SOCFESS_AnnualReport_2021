@@ -21,12 +21,12 @@ out.dir <- "L:/San Juan WQIP_KTQ/Data/RawData/From_Geosyntec/South_OC_Flow_Ecolo
 
 #Read in FFM annual and percentile data for all subbasins and scenarios
 #read in final annual FFM values under current, reference, and future water conservation scenarios
-FFM.annual <- read.csv("L:/San Juan WQIP_KTQ/Data/RawData/From_Geosyntec/South_OC_Flow_Ecology_for_SCCWRP/KTQ_flowalteration_assessment/00_Final_FFM_DeltaH_AH/SOC_deltaH_supp_final.csv")
+FFM.annual <- read.csv("L:/San Juan WQIP_KTQ/Data/RawData/From_Geosyntec/South_OC_Flow_Ecology_for_SCCWRP/KTQ_flowalteration_assessment/00_Final_FFM_DeltaH_AH/SOC_deltaH_supp_final_12012021.csv")
 #find unique sites to loop through
 sites <- unique(FFM.annual$site)
 
 #read in final FFM percentiles calculated across period of record under each model scenario
-FFM.percentiles <- read.csv("L:/San Juan WQIP_KTQ/Data/RawData/From_Geosyntec/South_OC_Flow_Ecology_for_SCCWRP/KTQ_flowalteration_assessment/00_Final_FFM_DeltaH_AH/SOC_percentiles_final.csv")
+FFM.percentiles <- read.csv("L:/San Juan WQIP_KTQ/Data/RawData/From_Geosyntec/South_OC_Flow_Ecology_for_SCCWRP/KTQ_flowalteration_assessment/00_Final_FFM_DeltaH_AH/SOC_percentiles_final_12012021.csv")
 
 #Read in the FFM lookup table - saved in git repository
 #Functional flow metric names and labels for plots
