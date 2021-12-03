@@ -55,6 +55,8 @@ FFM.percentiles <- read.csv("L:/San Juan WQIP_KTQ/Data/RawData/From_Geosyntec/So
   merge(lookup.2, by = "LSPC.ID")
 #find unique FFM sites (where we have modeled flows)
 unique.FFM.sites <- unique(FFM.percentiles$Reach.ID)
+#Note: all percentiles are in cfs, convert to cms for flow ranges
+
 
 #read in example flow range dataframe used for boxplots, format output the same
 example.flowrange <- read.csv("C:/Users/KristineT.SCCWRP2K/SCCWRP/SOC WQIP - Flow Ecology Study - General/Synthesis/flow_ranges_alisoSTP_09212021.csv",stringsAsFactors = FALSE)
@@ -178,20 +180,19 @@ for(i in 1:length(unique.sites)) {
   #interpolate WSE and Q to find Q at capacity
   wet.upper.Q <- approx(rating.i$wse_m, rating.i$q.cms, capacity.WSE)$y
 
-  # Dry-season baseflow:
-    # Lower limit: Q at 3cm depth in main channel (adult, use wet.lower.Q) or seedling no lower limit, use ref 10th percentile (seedling)
-    dry.lower.seedling.Q <- ref.percentiles.i %>% 
-      filter(flow_metric == "DS_Mag_50") %>% 
-      select(p10)
+  # Dry-season baseflow: Willow adult same as wet-season baseflow ranges
+  
+    #old seedling lower limits, not using anymore
+    # Lower limit: seedling no lower limit, use ref 10th percentile (seedling)
+    # dry.lower.seedling.Q <- ref.percentiles.i %>% 
+    #   filter(flow_metric == "DS_Mag_50") %>% 
+    #   select(p10) %>% 
+    #   as.numeric() 
+    # #percentiles in cfs, convert to cms
+    # dry.lower.seedling.Q <- dry.lower.seedling.Q*0.028316847
 
-    #if dry.lower.seedling.Q > wet.upper.Q
-    if(dry.lower.seedling.Q > wet.upper.Q) {
-      #then set dry.lower.seedling.Q as 0
-      dry.lower.seedling.Q <- 0
-    }
-    # Upper limit: flow at capacity (limit overbank inundation) --> use wet.upper.Q (same)
-    
-  # Seedling Dry-season baseflow:
+
+  # Spring recession (adult and seedling):
     # Lower limit: Q at 10 cm depth inundation in overbanks (capacity + 10cm)
     #find the overbank inundation WSE of 10 cm (capacity+0.1)
     overbank.inun.WSE <- capacity.WSE + .1
@@ -201,7 +202,10 @@ for(i in 1:length(unique.sites)) {
     # Upper limit: no upper limit, use ref 90th percentile
     spring.upper.Q <- ref.percentiles.i %>% 
       filter(flow_metric == "SP_Mag") %>% 
-      select(p90)
+      select(p90) %>% 
+      as.numeric() 
+    #percentile in cfs, convert to cms
+    spring.upper.Q <- spring.upper.Q*0.028316847
     
   ###################################################
   # save flow ranges into output dataframe
@@ -222,14 +226,14 @@ for(i in 1:length(unique.sites)) {
     wet.i$metric <- "Wet_BFL_Mag_10"
     wet.i$Notes <- "Q at 3 cm main channel depth to channel capacity"
     
-  # save in data for willow seedling - dry-season baseflow
-    dry.i <- row.i
-    dry.i$LifeStage <- "Seedling"
-    dry.i$Lower.Limit <- as.numeric(dry.lower.seedling.Q)
-    dry.i$Upper.Limit <- wet.upper.Q #same upper limit as wet
-    dry.i$Seasonal_Component <- "Dry-Season Baseflow"
-    dry.i$metric <- "DS_Mag_50"
-    dry.i$Notes <- "No lower limit, used either ref p10 or 0 if ref higher than upper limit"
+  # # not using anymore: save in data for willow seedling - dry-season baseflow
+  #   dry.i <- row.i
+  #   dry.i$LifeStage <- "Seedling"
+  #   dry.i$Lower.Limit <- dry.lower.seedling.Q
+  #   dry.i$Upper.Limit <- wet.upper.Q #same upper limit as wet
+  #   dry.i$Seasonal_Component <- "Dry-Season Baseflow"
+  #   dry.i$metric <- "DS_Mag_50"
+  #   dry.i$Notes <- "No lower limit, used either ref p10 or 0 if ref higher than upper limit"
     
   # save in data for willow adult - dry-season baseflow (same as wet flow ranges) 
     dry.adult <- wet.i
@@ -241,10 +245,15 @@ for(i in 1:length(unique.sites)) {
     spring.i <- row.i
     spring.i$LifeStage <- "Adult & Seedling"
     spring.i$Lower.Limit <- spring.lower.Q
-    spring.i$Upper.Limit <- as.numeric(spring.upper.Q)
+    #for spring upper limit, if spring lower limit is > upper, put NA as upper limit, else use p90 ref spring.upper.Q
+    if(spring.lower.Q > spring.upper.Q){
+      spring.i$Upper.Limit <- NA
+    }else{
+      spring.i$Upper.Limit <- spring.upper.Q
+    }
     spring.i$Seasonal_Component <- "Spring Recession Flow"
     spring.i$metric <- "SP_Mag"
-    spring.i$Notes <- "Q at 10 cm inundation overbank to ref p90"
+    spring.i$Notes <- "Q at 10 cm inundation overbank to ref p90 (if > lower limit)"
     
   #combine all rows
     rows.all <- rbind(wet.i, dry.i, dry.adult, spring.i)
@@ -254,10 +263,14 @@ for(i in 1:length(unique.sites)) {
 
 }
 
-#####Post processing
+#####Post processing flow.ranges for export
 #remove first row NA
+flow.ranges <- flow.ranges[2:length(flow.ranges$Node),]
 
-#paste the species lifestage together to get label and species columns for all
-wet.i$Species_Label <- 
-wet.i$Species <- 
+#create Species_Label and Species columns by pasting others
 #also convert to cfs for lower and upper limits
+flow.ranges <- flow.ranges %>% 
+  mutate(Species_Label = paste(Species1, LifeStage),
+         Species = paste(Species1, "-", LifeStage),
+         lowerlimit_cfs = Lower.Limit*35.314666212661,
+         upperlimit_cfs = Upper.Limit*35.314666212661)
