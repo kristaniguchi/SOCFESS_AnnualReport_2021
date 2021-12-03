@@ -5,10 +5,10 @@
   # Wet-season baseflow (adult):
     # Lower limit: Q at 3cm depth in main channel
     # Upper limit: flow at capacity (limit overbank inundation)
-  # Dry-season baseflow:
-    # Lower limit: Q at 3cm depth in main channel (adult) or no lower limit, use ref 10th percentile (seedling)
+  # Dry-season baseflow (adult): same as wet
+    # Lower limit: Q at 3cm depth in main channel
     # Upper limit: flow at capacity (limit overbank inundation) 
-  # Seedling Dry-season baseflow:
+  # Spring recession flow (adult and seedling):
     # Lower limit: Q at 10 cm depth inundation in overbanks (capacity + 10cm)
     # Upper limit: no upper limit, use ref 90th percentile
 
@@ -181,16 +181,6 @@ for(i in 1:length(unique.sites)) {
   wet.upper.Q <- approx(rating.i$wse_m, rating.i$q.cms, capacity.WSE)$y
 
   # Dry-season baseflow: Willow adult same as wet-season baseflow ranges
-  
-    #old seedling lower limits, not using anymore
-    # Lower limit: seedling no lower limit, use ref 10th percentile (seedling)
-    # dry.lower.seedling.Q <- ref.percentiles.i %>% 
-    #   filter(flow_metric == "DS_Mag_50") %>% 
-    #   select(p10) %>% 
-    #   as.numeric() 
-    # #percentiles in cfs, convert to cms
-    # dry.lower.seedling.Q <- dry.lower.seedling.Q*0.028316847
-
 
   # Spring recession (adult and seedling):
     # Lower limit: Q at 10 cm depth inundation in overbanks (capacity + 10cm)
@@ -226,22 +216,13 @@ for(i in 1:length(unique.sites)) {
     wet.i$metric <- "Wet_BFL_Mag_10"
     wet.i$Notes <- "Q at 3 cm main channel depth to channel capacity"
     
-  # # not using anymore: save in data for willow seedling - dry-season baseflow
-  #   dry.i <- row.i
-  #   dry.i$LifeStage <- "Seedling"
-  #   dry.i$Lower.Limit <- dry.lower.seedling.Q
-  #   dry.i$Upper.Limit <- wet.upper.Q #same upper limit as wet
-  #   dry.i$Seasonal_Component <- "Dry-Season Baseflow"
-  #   dry.i$metric <- "DS_Mag_50"
-  #   dry.i$Notes <- "No lower limit, used either ref p10 or 0 if ref higher than upper limit"
-    
   # save in data for willow adult - dry-season baseflow (same as wet flow ranges) 
-    dry.adult <- wet.i
-    dry.adult$LifeStage <- "Adult"
-    dry.adult$Seasonal_Component <- "Dry-Season Baseflow"
-    dry.adult$metric <- "DS_Mag_50"
+    dry.i <- wet.i
+    dry.i$LifeStage <- "Adult"
+    dry.i$Seasonal_Component <- "Dry-Season Baseflow"
+    dry.i$metric <- "DS_Mag_50"
     
-  # save in data for willow adult - wet-season baseflow
+  # save in data for willow adult and seedling, spring recession flow
     spring.i <- row.i
     spring.i$LifeStage <- "Adult & Seedling"
     spring.i$Lower.Limit <- spring.lower.Q
@@ -256,7 +237,7 @@ for(i in 1:length(unique.sites)) {
     spring.i$Notes <- "Q at 10 cm inundation overbank to ref p90 (if > lower limit)"
     
   #combine all rows
-    rows.all <- rbind(wet.i, dry.i, dry.adult, spring.i)
+    rows.all <- rbind(wet.i, dry.i, spring.i)
   
   #save rows.all into output df
     flow.ranges <- rbind(flow.ranges, rows.all)
@@ -274,3 +255,8 @@ flow.ranges <- flow.ranges %>%
          Species = paste(Species1, "-", LifeStage),
          lowerlimit_cfs = Lower.Limit*35.314666212661,
          upperlimit_cfs = Upper.Limit*35.314666212661)
+
+#####write csv
+#filename, update path where data to be saved
+filename <- paste0("C:/Users/KristineT.SCCWRP2K/SCCWRP/SOC WQIP - Flow Ecology Study - General/Tier3_analysis", "/Willow_Flow_Ranges_Ruleset.csv")
+write.csv(flow.ranges, file = filename, row.names=FALSE)
