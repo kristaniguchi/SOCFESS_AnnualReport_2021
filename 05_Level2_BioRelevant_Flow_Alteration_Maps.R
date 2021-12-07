@@ -28,7 +28,6 @@ library(ggmap)
 library(ggspatial)
 library(mapview)
 library(spData)      
-library(spDataLarge)
 library(geosphere)
 library(rgeos)
 
