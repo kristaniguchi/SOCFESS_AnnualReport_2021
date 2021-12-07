@@ -323,7 +323,7 @@ mine.heatmap2 <- ggplot(data = ffm_summary2, mapping = aes(x = flow_characterist
   scale_fill_gradient(name = "Number of\nAltered Subbasins",
                       low = "#fef0d9",
                       high = "#b30000") +
-  ggtitle(label = "Altered Subbasins in Aliso, Oso, and Smaller Coastal Tributaries") + theme_light() +
+  ggtitle(label = "") + theme_light() +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14,face="bold")) 
 #view heatmap
