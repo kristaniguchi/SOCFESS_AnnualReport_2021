@@ -485,9 +485,9 @@ data.all$alteration.status.change.simple[data.all$alteration.status.change.simpl
 data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "likely_unaltered to indeterminate"] <- "Indeterminate"
 data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "NA to indeterminate"] <- "Indeterminate"
 unique(data.all$alteration.status.change.simple)
-#Possible degredation (change from likely unaltered or indeterminate to likely altered)
-data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "indeterminate to likely_altered"] <- "Possible Degredation"
-data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "likely_unaltered to likely_altered"] <- "Possible Degredation"
+#Possible Degradation (change from likely unaltered or indeterminate to likely altered)
+data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "indeterminate to likely_altered"] <- "Possible Degradation"
+data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "likely_unaltered to likely_altered"] <- "Possible Degradation"
 #possible improvement (change from likely altered or indeterminate to likely unaltered)
 data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "indeterminate to likely_unaltered"] <- "Possible Improvement"
 data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "likely_altered to likely_unaltered"] <- "Possible Improvement"
@@ -500,7 +500,7 @@ basins.all
 
 #list of colors and alteration status changes, color current by alteration status changes
 colors <- c("#ca0020", "white",  "#0571b0", "grey")
-alteration.status.change.simple <- c("Possible Degredation", "No Change", "Possible Improvement", "Indeterminate")
+alteration.status.change.simple <- c("Possible Degradation", "No Change", "Possible Improvement", "Indeterminate")
 lookup <- data.frame(cbind(colors, alteration.status.change.simple))
 # colors <- c("#ca0020", "#f4a582", "white", "#92c5de", "#0571b0", "grey", "lightgrey")
 # alteration.status.change.simple <- c("Likely Unaltered to Likely Altered", "Indeterminate to Likely Altered", "No Change", "Indeterminate to Likely Unaltered", "Likely Altered to Likely Unaltered", "Indeterminate",  NA)
