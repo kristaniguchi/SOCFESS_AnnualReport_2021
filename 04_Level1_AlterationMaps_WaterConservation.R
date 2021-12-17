@@ -147,10 +147,6 @@ for(j in 1:length(unique.ffm)){
   #subset colors and status
   lookup.sub <- lookup[lookup$alteration.status.new %in% basins4.sub$alteration.status.new,]
   
-  #save alteration status as factor for legend order
-  lookup.sub$alteration.status.new <- factor(lookup.sub$alteration.status.new, levels = lookup.sub$alteration.status.new)
-  basins4.sub$alteration.status.new <- factor(basins4.sub$alteration.status.new, levels = lookup.sub$alteration.status.new)
-  
   #find and replace names for timing low early, high late
   if(unique(basins4.sub$flow_characteristic) == "Timing (date)"){
     basins4.sub$alteration.status.new <- gsub("Likely Altered Low", "Likely Altered Early", basins4.sub$alteration.status.new)
@@ -159,6 +155,10 @@ for(j in 1:length(unique.ffm)){
     lookup.sub$alteration.status.new <- gsub("Likely Altered High", "Likely Altered Late", lookup.sub$alteration.status.new)
   }
   unique(basins4.sub$alteration.status.new)
+  
+  #save alteration status as factor for legend order
+  lookup.sub$alteration.status.new <- factor(lookup.sub$alteration.status.new, levels = lookup.sub$alteration.status.new)
+  basins4.sub$alteration.status.new <- factor(basins4.sub$alteration.status.new, levels = lookup.sub$alteration.status.new)
   
   #base map 
   study2 <- ggplot(basins) + 
