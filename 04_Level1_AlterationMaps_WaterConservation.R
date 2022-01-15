@@ -62,10 +62,6 @@ basins2
 #reach polylines shapefile can be downloaded here: https://ocgov.box.com/s/rni13od1uai7r351xrt1qbp13wg0sd5o (Reach_Shapefile.zip), unzip and save on local computer, update directory below
 reaches <- st_read('L:/San Juan WQIP_KTQ/Data/SpatialData/Model_Subbasins_Reaches/New_Subbasins_forSCCWRP_12062019/New_Subbasins_forSCCWRP/reaches_forSCCWRP.shp', quiet = T)
 
-#join component alteration data frame with subbasin shapefile information
-comp_alt <- comp_alt %>% 
-  inner_join(basins, by = c('New_Name'))
-comp_alt
 
 #read in alteration summary table - all metrics --> this csv can be downloaded here: 
 data <- read.csv(file=paste0(alteration.dir, "ffm_alteration_watercon_all.csv"))
@@ -102,34 +98,34 @@ domain <- study + geom_sf(data = basins2, color = "red", fill="white", size = 1.
 
 #subbasin polygons
 data$New_Name <- data$subbasin
-basins4 <- basins %>% 
-  inner_join(data, by = c('New_Name'))
-basins4
+# basins4 <- basins %>% 
+#   inner_join(data, by = c('New_Name'))
+# basins4
 
 #replace alteration category names
-basins4$alteration.status[basins4$alteration.status == "likely_altered"] <- "Likely Altered"
-basins4$alteration.status[basins4$alteration.status == "likely_unaltered"] <- "Likely Unaltered"
-basins4$alteration.status[basins4$alteration.status == "indeterminate"] <- "Indeterminate"
-basins4$alteration.status[basins4$alteration.status == "Not enough values"] <- "Not enough data"
+data$alteration.status[data$alteration.status == "likely_altered"] <- "Likely Altered"
+data$alteration.status[data$alteration.status == "likely_unaltered"] <- "Likely Unaltered"
+data$alteration.status[data$alteration.status == "indeterminate"] <- "Indeterminate"
+data$alteration.status[data$alteration.status == "Not enough values"] <- "Not enough data"
 
 #replace alteration direction names
-basins4$alteration.direction[basins4$alteration.direction == "none_found"] <- ""
-basins4$alteration.direction[which(is.na(basins4$alteration.direction))] <- ""
-basins4$alteration.direction[basins4$alteration.direction == "undeterminable"] <- ""
-basins4$alteration.direction[basins4$alteration.direction == "low"] <- " Low"
-basins4$alteration.direction[basins4$alteration.direction == "early"] <- " Low"
-basins4$alteration.direction[basins4$alteration.direction == "late"] <- " High"
-basins4$alteration.direction[basins4$alteration.direction == "high"] <- " High"
+data$alteration.direction[data$alteration.direction == "none_found"] <- ""
+data$alteration.direction[which(is.na(data$alteration.direction))] <- ""
+data$alteration.direction[data$alteration.direction == "undeterminable"] <- ""
+data$alteration.direction[data$alteration.direction == "low"] <- " Low"
+data$alteration.direction[data$alteration.direction == "early"] <- " Low"
+data$alteration.direction[data$alteration.direction == "late"] <- " High"
+data$alteration.direction[data$alteration.direction == "high"] <- " High"
 #create new alteration category with direction
-basins4$alteration.status.new <- paste0(basins4$alteration.status, basins4$alteration.direction)
+data$alteration.status.new <- paste0(data$alteration.status, data$alteration.direction)
 #replace indeterminate high and low
-basins4$alteration.status.new <- gsub("Indeterminate High", "Indeterminate", basins4$alteration.status.new)
-basins4$alteration.status.new <- gsub("Indeterminate Low", "Indeterminate", basins4$alteration.status.new)
-unique(basins4$alteration.status.new)
+data$alteration.status.new <- gsub("Indeterminate High", "Indeterminate", data$alteration.status.new)
+data$alteration.status.new <- gsub("Indeterminate Low", "Indeterminate", data$alteration.status.new)
+unique(data$alteration.status.new)
 
 #list of colors and alteration statuses, color watercon by alteration status
-colors <- c("#cb181d", "#fdbe85", "#2171b5", "#f7f7f7", "#bababa")
-alteration.status.new <- c("Likely Altered High", "Likely Altered Low", "Likely Unaltered", "Indeterminate", "Not enough data")
+colors <- c("#cb181d", "#fdbe85", "#2171b5", "#f7f7f7", "#999999", "#cccccc")
+alteration.status.new <- c("Likely Altered High", "Likely Altered Low", "Likely Unaltered", "Indeterminate", "Not enough data", "Not evaluated")
 lookup <- data.frame(cbind(colors, alteration.status.new))
 
 #output director for alteration maps FFMs
@@ -138,31 +134,41 @@ dir.alt <- paste0(alteration.dir, "WaterconAlterationMaps/")
 dir.create(dir.alt)
 
 #loop through each metric and plot alteration
-unique.ffm <- unique(basins4$ffm)
+unique.ffm <- unique(data$ffm)
 
 for(j in 1:length(unique.ffm)){
   #subset basins4 to ffm j
-  basins4.sub <- basins4[basins4$ffm == unique.ffm[j],]
+  basins4.sub <- data[data$ffm == unique.ffm[j],]
+  
+  #join with basins to get subbasins not modeled
+  join_sub <- basins  %>% 
+    full_join(basins4.sub, by = c('New_Name'))
+  
+  #replace NA with Not evaluated
+  join_sub$alteration.status.new[which(is.na(join_sub$alteration.status.new))] <- "Not evaluated"
+  
+  unique(join_sub$alteration.status.new)
+  
   
   #subset colors and status
-  lookup.sub <- lookup[lookup$alteration.status.new %in% basins4.sub$alteration.status.new,]
+  lookup.sub <- lookup[lookup$alteration.status.new %in% join_sub$alteration.status.new,]
   
   #find and replace names for timing low early, high late
-  if(unique(basins4.sub$flow_characteristic) == "Timing (date)"){
-    basins4.sub$alteration.status.new <- gsub("Likely Altered Low", "Likely Altered Early", basins4.sub$alteration.status.new)
-    basins4.sub$alteration.status.new <- gsub("Likely Altered High", "Likely Altered Late", basins4.sub$alteration.status.new)
+  if(na.omit(unique(join_sub$flow_characteristic)) == "Timing (date)"){
+    join_sub$alteration.status.new <- gsub("Likely Altered Low", "Likely Altered Early", join_sub$alteration.status.new)
+    join_sub$alteration.status.new <- gsub("Likely Altered High", "Likely Altered Late", join_sub$alteration.status.new)
     lookup.sub$alteration.status.new <- gsub("Likely Altered Low", "Likely Altered Early", lookup.sub$alteration.status.new)
     lookup.sub$alteration.status.new <- gsub("Likely Altered High", "Likely Altered Late", lookup.sub$alteration.status.new)
   }
-  unique(basins4.sub$alteration.status.new)
+  unique(join_sub$alteration.status.new)
   
   #save alteration status as factor for legend order
   lookup.sub$alteration.status.new <- factor(lookup.sub$alteration.status.new, levels = lookup.sub$alteration.status.new)
-  basins4.sub$alteration.status.new <- factor(basins4.sub$alteration.status.new, levels = lookup.sub$alteration.status.new)
+  join_sub$alteration.status.new <- factor(join_sub$alteration.status.new, levels = lookup.sub$alteration.status.new)
   
   #base map 
   study2 <- ggplot(basins) + 
-    geom_sf(color = "#969696", fill="#e0e0e0") +
+    geom_sf(color = "gray51", fill="#cccccc") +
     labs(title=unique(basins4.sub$title_name),x ="", y = "") + 
     annotation_scale() +
     annotation_north_arrow(pad_y = unit(0.9, "cm"),  height = unit(.8, "cm"),
@@ -173,9 +179,9 @@ for(j in 1:length(unique.ffm)){
           panel.grid = element_line(color = "white", size = 0.8))
   
   #filled alteration plots
-  alt.plot <- study2 + geom_sf(data = basins4.sub, color= "#969696", aes(fill=alteration.status.new)) +
+  alt.plot <- study2 + geom_sf(data = join_sub, color= "gray51", aes(fill=alteration.status.new)) +
     scale_fill_manual(name = "Alteration Status", labels = lookup.sub$alteration.status.new, values=lookup.sub$colors) +
-    geom_sf(data = reaches, color = "#67a9cf", size = 0.5) 
+    geom_sf(data = reaches, color = "dodgerblue4", size = 0.5) 
   
   
   #print
@@ -194,19 +200,30 @@ for(j in 1:length(unique.ffm)){
 #code to produce maps that are saved at: https://ocgov.box.com/s/icfkx7rqwntaj0i4zkr7vuyxdh6s51kd (Facet Maps by Flow Component.zip)
 
 #loop through each component and plot panel plots of the metrics
-uniq.comp <- unique(basins4$flow_component)
+uniq.comp <- unique(data$flow_component)
 
 for(k in 1:length(uniq.comp)){
-  #subset basins4 to ffm j
-  basins4.sub <- basins4[basins4$flow_component == uniq.comp[k],]
+  #subset data to component j
+  basins4.sub <- data[data$flow_component == uniq.comp[k],]
+  
+  #join with basins to get subbasins not modeled
+  join_sub <- basins  %>% 
+    full_join(basins4.sub, by = c('New_Name'))
+  
+  #replace NA with Not evaluated
+  ind.NA <- which(is.na(join_sub$alteration.status.new))
+  join_sub$alteration.status.new[ind.NA] <- "Not evaluated"
+  unique(join_sub$alteration.status.new)
+  #add in component name, ffm, etc
+  join_sub$title_ffm[ind.NA] <- basins4.sub$title_ffm[1]
   
   #subset colors and status
-  lookup.sub <- lookup[lookup$alteration.status.new %in% basins4.sub$alteration.status.new,]
+  lookup.sub <- lookup[lookup$alteration.status.new %in% join_sub$alteration.status.new,]
   #save as factor
   lookup.sub$alteration.status.new <- factor(lookup.sub$alteration.status.new, levels = unique(lookup.sub$alteration.status.new))
-  basins4.sub$alteration.status.new <- factor(basins4.sub$alteration.status.new, levels = unique(lookup.sub$alteration.status.new))
+  join_sub$alteration.status.new <- factor(join_sub$alteration.status.new, levels = unique(lookup.sub$alteration.status.new))
   #title metric needs to be sorted, factor
-  basins4.sub$title_ffm <- factor(basins4.sub$title_ffm, levels = unique(basins4.sub$title_ffm))
+  join_sub$title_ffm <- factor(join_sub$title_ffm, levels = unique(join_sub$title_ffm))
   
   
   #if peak flow mag, use 3 columns
@@ -220,11 +237,11 @@ for(k in 1:length(uniq.comp)){
   
   #base map 
   study2 <- ggplot(basins) + 
-    geom_sf(color = "#969696", fill="#e0e0e0") +
+    geom_sf(color = "gray51", fill= "#cccccc") +
     annotation_scale() +
     annotation_north_arrow(pad_y = unit(0.9, "cm"),  height = unit(.8, "cm"),
                            width = unit(.8, "cm")) +
-    labs(title=unique(basins4.sub$title_component),x ="", y = "")  + 
+    labs(title=na.omit(unique(join_sub$title_component)),x ="", y = "")  + 
     theme(panel.background = element_rect(fill = "white"),
           axis.ticks = element_blank(),
           axis.text = element_blank(),
@@ -232,16 +249,15 @@ for(k in 1:length(uniq.comp)){
           plot.title = element_text(size=20))
   
   #filled alteration plots
-  alt.plot <- study2 + geom_sf(data = basins4.sub, color= "#969696", aes(fill=alteration.status.new)) +
+  alt.plot <- study2 + 
+    geom_sf(data = join_sub, color= "gray51", aes(fill=alteration.status.new)) +
     scale_fill_manual(name = "Alteration Status", labels = lookup.sub$alteration.status.new, values=lookup.sub$colors) +
     facet_wrap(~ title_ffm, ncol = col.num) +
     theme(strip.text.x = element_text(size = font.size)) +
-    geom_sf(data = reaches, color = "#67a9cf", size = 0.5) 
+    geom_sf(data = reaches, color = "dodgerblue4", size = 0.5)
   
   #print
   #print(alt.plot)
-  
-  
   
   #write plot
   #save as jpg
@@ -336,7 +352,16 @@ ggsave(mine.heatmap2, file=paste0(dir.alt,"heatmap_alteration.nofreq.jpg"), dpi=
 #subset component alteration data to wet, dry, peak
 comp.synthesis <- c("Wet-season baseflow", "Peak flow", "Dry-season baseflow")
 component.sub <- comp_alt[comp_alt$flow_component %in% comp.synthesis,] %>% 
-  filter(component_alteration == "likely_altered") %>%
+  filter(component_alteration != "likely_unaltered")
+#find unique(component_alteration)
+unique(component.sub$component_alteration)
+
+#replace component if indeterminate to indeterminate
+component.sub$flow_component <- as.character(component.sub$flow_component)
+component.sub$flow_component[component.sub$component_alteration == "indeterminate"] <- "Indeterminate"
+
+#group by New_Name, summarize by flow component
+component.sub <- component.sub %>%
   group_by(New_Name) %>% 
   summarise(flow_component = toString(unique(flow_component))) %>% 
   ungroup() 
@@ -358,9 +383,14 @@ component.sub.unaltered.df <- data.frame(component.sub.unaltered)
 unique(component.sub.unaltered.df$flow_component)
 
 #combine with basins shapefile again
-comp_alt_synth <- component.sub.df %>% 
-  inner_join(basins, by = c('New_Name')) 
+comp_alt_synth <- basins %>% 
+  full_join(component.sub.df, by = c('New_Name')) 
 comp_alt_synth
+
+#replace NA with Not evaluated
+ind.NA <- which(is.na(comp_alt_synth$flow_component))
+comp_alt_synth$flow_component[ind.NA] <- "Not evaluated"
+unique(comp_alt_synth$flow_component)
 
 #set new flow component alteration synthesis names
 comp_alt_synth$flow_component <- gsub(" baseflow", "", comp_alt_synth$flow_component)
@@ -370,17 +400,25 @@ unique(comp_alt_synth$flow_component)
 comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Peak Flow, Wet-season"] <- "All"
 #comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Wet-season, Peak Flow, Dry-season"] <- "All"
 #comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Wet-season, Dry-season, Peak Flow"] <- "All"
-comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Wet-season"] <- "Wet-season, Dry-season"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Indeterminate, Wet-season"] <- "Wet-season, Dry-season"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Peak Flow, Indeterminate"] <- "Peak Flow, Dry-season"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Indeterminate, Wet-season"] <- "Wet-season"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Indeterminate"] <- "Dry-season"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Indeterminate, Peak Flow, Wet-season"] <- "Peak Flow, Wet-season"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Indeterminate, Peak Flow"] <- "Peak Flow"
 comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Dry-season, Peak Flow"] <- "Peak Flow, Dry-season"
+comp_alt_synth$flow_component[comp_alt_synth$flow_component == "Indeterminate"] <- "Unaltered, Indeterminate"
 
 #check to see unique categories for synthesis alteration
 unique(comp_alt_synth$flow_component)
 #save as factor for legend order
-comp_alt_synth$altered_components <- factor(comp_alt_synth$flow_component, levels = c("All", "Wet-season, Dry-season", "Peak Flow, Wet-season", "Peak Flow, Dry-season","Dry-season", "Wet-season", "Peak Flow"))
+comp_alt_synth$altered_components <- factor(comp_alt_synth$flow_component, levels = c("All", "Wet-season, Dry-season", "Peak Flow, Wet-season", "Peak Flow, Dry-season","Dry-season", "Wet-season", "Peak Flow", "Unaltered, Indeterminate", "Not evaluated"))
+
+
 
 #save colors and levels for legend/map
-colors <- c("#a50f15", "#d95f0e", "#fdae61", "pink", "#fee090", "#fff7bc", "#4575b4")
-levels <- c("All", "Wet-season, Dry-season", "Peak Flow, Wet-season", "Peak Flow, Dry-season","Dry-season", "Wet-season", "Peak Flow")
+colors <- c("#a50f15", "#d95f0e", "#fdae61", "pink", "#fee090", "#fff7bc", "darkseagreen", "#4575b4", "#cccccc")
+levels <- c("All", "Wet-season, Dry-season", "Peak Flow, Wet-season", "Peak Flow, Dry-season","Dry-season", "Wet-season", "Peak Flow", "Unaltered, Indeterminate", "Not evaluated")
 legend <- data.frame(cbind(colors, levels))
 
 #subset to categories
@@ -390,7 +428,7 @@ legend.sub$levels <- factor(legend.sub$levels, levels = unique(legend.sub$levels
 
 #base map 
 study2 <- ggplot(basins) + 
-  geom_sf(color = "lightgrey", fill="white") +
+  geom_sf(color = "gray51", fill= "#cccccc") +
   #geom_sf(color = "#969696", fill="white") +
   labs(title="Hydrologic Alteration Synthesis", subtitle = "Wet and Dry Season Baseflow, Peak Flow",x ="", y = "")  + 
   annotation_scale() +
@@ -405,9 +443,9 @@ study2 <- ggplot(basins) +
 study2
 
 #synthesis map
-syn.plot <- study2 + geom_sf(data = comp_alt_synth, color= "gray89", aes(fill=altered_components, geometry = geometry)) +
+syn.plot <- study2 + geom_sf(data = comp_alt_synth, color= "gray51", aes(fill=altered_components, geometry = geometry)) +
   scale_fill_manual(name = "Alterated Components", labels = levels, values=colors) +
-  geom_sf(data = reaches, color = "#67a9cf", size = 0.5) 
+  geom_sf(data = reaches, color = "dodgerblue4", size = 0.5) 
 
 #print
 print(syn.plot)
@@ -428,6 +466,12 @@ data.current <- read.csv(file=paste0(alteration.dir, "ffm_alteration_current_all
 data.current$New_Name <- data.current$subbasin
 #set levels for flow component so it goes in sequence of WY
 data.current$flow_component <- factor(data.current$flow_component, levels = c("Fall pulse flow", "Wet-season baseflow", "Peak flow", "Spring recession flow", "Dry-season baseflow"))
+
+#replace alteration category names
+data.current$alteration.status[data.current$alteration.status == "likely_altered"] <- "Likely Altered"
+data.current$alteration.status[data.current$alteration.status == "likely_unaltered"] <- "Likely Unaltered"
+data.current$alteration.status[data.current$alteration.status == "indeterminate"] <- "Indeterminate"
+data.current$alteration.status[data.current$alteration.status == "Not enough values"] <- "Not enough data"
 
 
 # #combine with polygons
@@ -466,7 +510,7 @@ unique(data.all$alteration.status.change)
 #"NA to NA"  should be NA
 #data.all$alteration.status.change[data.all$alteration.status.change == "NA to NA"] <- NA
 #"NA to NA"  should be NA
-data.all$alteration.status.change[data.all$alteration.status.change == "Not enough values to Not enough values"] <- "Not enough values"
+data.all$alteration.status.change[data.all$alteration.status.change == "Not enough values to Not enough data"] <- "Not enough values"
 #find rows where no change
 data.all$alteration.status.change[data.all$alteration.status == data.all$alteration.status.watercon] <- "No Change"
 unique(data.all$alteration.status.change)
@@ -481,26 +525,22 @@ unique(data.all$alteration.status.change.simple)
 data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "NA to NA"] <- NA
 unique(data.all$alteration.status.change.simple)
 #change anything to indeterminate as indeterminate
-data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "likely_altered to indeterminate"] <- "Indeterminate"
-data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "likely_unaltered to indeterminate"] <- "Indeterminate"
-data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "NA to indeterminate"] <- "Indeterminate"
+data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "Likely Altered to Indeterminate"] <- "Indeterminate"
+data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "Likely Unaltered to Indeterminate"] <- "Indeterminate"
+data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "NA to Indeterminate"] <- "Indeterminate"
 unique(data.all$alteration.status.change.simple)
 #Possible Degradation (change from likely unaltered or indeterminate to likely altered)
-data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "indeterminate to likely_altered"] <- "Possible Degradation"
-data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "likely_unaltered to likely_altered"] <- "Possible Degradation"
+data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "Indeterminate to Likely Altered"] <- "Possible Degradation"
+data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "Likely Unaltered to Likely Altered"] <- "Possible Degradation"
 #possible improvement (change from likely altered or indeterminate to likely unaltered)
-data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "indeterminate to likely_unaltered"] <- "Possible Improvement"
-data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "likely_altered to likely_unaltered"] <- "Possible Improvement"
+data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "Indeterminate to Likely Unaltered"] <- "Possible Improvement"
+data.all$alteration.status.change.simple[data.all$alteration.status.change.simple == "Likely Altered to Likely Unaltered"] <- "Possible Improvement"
 unique(data.all$alteration.status.change.simple)
 
-#combine with basins polygons
-basins.all <- basins %>%
-  inner_join(data.all, by = c('New_Name'))
-basins.all
 
 #list of colors and alteration status changes, color current by alteration status changes
-colors <- c("#ca0020", "white",  "#0571b0", "grey")
-alteration.status.change.simple <- c("Possible Degradation", "No Change", "Possible Improvement", "Indeterminate")
+colors <- c("#ca0020", "white",  "#0571b0", "dimgrey", "#cccccc")
+alteration.status.change.simple <- c("Possible Degradation", "No Change", "Possible Improvement", "Indeterminate", "Not evaluated")
 lookup <- data.frame(cbind(colors, alteration.status.change.simple))
 # colors <- c("#ca0020", "#f4a582", "white", "#92c5de", "#0571b0", "grey", "lightgrey")
 # alteration.status.change.simple <- c("Likely Unaltered to Likely Altered", "Indeterminate to Likely Altered", "No Change", "Indeterminate to Likely Unaltered", "Likely Altered to Likely Unaltered", "Indeterminate",  NA)
@@ -512,11 +552,20 @@ dir.alt <- paste0(alteration.dir, "AlterationChangeMaps/")
 dir.create(dir.alt)
 
 #loop through each metric and plot
-unique.ffm <- unique(basins.all$ffm)
+unique.ffm <- unique(data.all$ffm)
 
 for(j in 1:length(unique.ffm)){
   #subset basins.all to ffm j
-  basins.all.sub <- basins.all[basins.all$ffm == unique.ffm[j],]
+  basins.all.sub <- data.all[data.all$ffm == unique.ffm[j],]
+  
+  #combine with basins polygons
+  basins.all.sub <- basins %>%
+    full_join(basins.all.sub, by = c('New_Name'))
+  
+  #replace NA with Not evaluated
+  basins.all.sub$alteration.status.change.simple[which(is.na(basins.all.sub$alteration.status.change.simple))] <- "Not evaluated"
+  unique(basins.all.sub$alteration.status.change.simple)
+  
   
   #subset colors and status
   lookup.sub <- lookup[lookup$alteration.status.change.simple %in% basins.all.sub$alteration.status.change.simple,]
@@ -528,8 +577,8 @@ for(j in 1:length(unique.ffm)){
   
   #base map 
   study2 <- ggplot(basins) + 
-    geom_sf(color = "#969696", fill="#d9d9d9") +
-    labs(title=unique(basins.all.sub$title_name),x ="", y = "") + 
+    geom_sf(color = "gray51", fill="#cccccc") +
+    labs(title=na.omit(unique(basins.all.sub$title_name)),x ="", y = "") + 
     annotation_scale() +
     annotation_north_arrow(pad_y = unit(0.9, "cm"),  height = unit(.8, "cm"),
                            width = unit(.8, "cm")) +
@@ -539,16 +588,16 @@ for(j in 1:length(unique.ffm)){
           panel.grid = element_line(color = "white", size = 0.8))
   
   #filled alteration plots
-  alt.plot.comparison <- study2 + geom_sf(data = basins.all.sub, color= "#969696", aes(fill=alteration.status.change.simple)) +
+  alt.plot.comparison <- study2 + geom_sf(data = basins.all.sub, color= "gray51", aes(fill=alteration.status.change.simple)) +
     scale_fill_manual(name = "Alteration Status Change", labels = lookup.sub$alteration.status.change.simple, values=lookup.sub$colors) +
-    geom_sf(data = reaches, color = "#67a9cf", size = 0.5) 
+    geom_sf(data = reaches, color = "dodgerblue4", size = 0.5) 
   
   #print
   # print(alt.plot.comparison)
   
   #write plot
   #save as jpg
-  plot.fname <- paste0(dir.alt,unique(basins.all.sub$ffm), "_alteration.change.current.watercon.map.jpg")
+  plot.fname <- paste0(dir.alt,na.omit(unique(basins.all.sub$ffm)), "_alteration.change.current.watercon.map.jpg")
   ggsave(alt.plot.comparison, file=plot.fname, dpi=300, height=8, width=12)
   
 }  
